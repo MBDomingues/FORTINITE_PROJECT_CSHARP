@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Fortinite_Project.Web.Data;
 using Fortinite_Project.Web.Models;
-using Fortinite_Project.Web.DTOs; // Importante para acessar o DTO
+using Fortinite_Project.Web.DTOs;
 
 namespace Fortinite_Project.Web.Controllers;
 
@@ -16,10 +16,8 @@ public class CosmeticosController : ControllerBase
     {
         _context = context;
     }
-
-    // GET: api/cosmeticos
     [HttpGet]
-    public async Task<ActionResult> GetCosmeticos(
+    public async Task<ActionResult<BaseResponse_DTO<object>>> GetCosmeticos(
         [FromQuery] string? nome,
         [FromQuery] string? tipo,
         [FromQuery] string? raridade,
@@ -60,37 +58,27 @@ public class CosmeticosController : ControllerBase
             Descricao = c.Descricao,
             Preco = c.Preco,
             dataInclusao = c.dataInclusao,
-            
-            TypeInfo = new FortniteTypeInfo 
-            { 
-                DisplayValue = c.Tipo, 
-                Value = c.Tipo 
-            },
-            
-            Rarity = new FortniteRarityInfo 
-            { 
-                DisplayValue = c.Raridade 
-            },
-            
-            Images = new FortniteImages 
-            { 
-                Small = c.UrlImagem, 
-                Large = c.UrlImagem, 
-                Icon = c.UrlImagem 
-            }
+            TypeInfo = new FortniteTypeInfo { DisplayValue = c.Tipo, Value = c.Tipo },
+            Rarity = new FortniteRarityInfo { DisplayValue = c.Raridade },
+            Images = new FortniteImages { Small = c.UrlImagem, Large = c.UrlImagem, Icon = c.UrlImagem }
         }).ToList();
 
-        return Ok(new 
+        return Ok(new BaseResponse_DTO<object>
         {
-            Total = totalItems,
-            Page = page,
-            PageSize = pageSize,
-            Data = itensDto
+            Status = 200,
+            Message = "Dados recuperados com sucesso",
+            Data = new 
+            {
+                Total = totalItems,
+                Page = page,
+                PageSize = pageSize,
+                Data = itensDto
+            }
         });
     }
 
     [HttpGet("loja")]
-    public async Task<ActionResult<IEnumerable<CosmeticoApi_DTO>>> GetLojaDiaria()
+    public async Task<ActionResult<BaseResponse_DTO<IEnumerable<CosmeticoApi_DTO>>>> GetLojaDiaria()
     {
         var itensEntity = await _context.Cosmeticos
             .Where(c => c.isForSale == true)
@@ -108,17 +96,26 @@ public class CosmeticosController : ControllerBase
             Images = new FortniteImages { Small = c.UrlImagem, Large = c.UrlImagem, Icon = c.UrlImagem }
         });
 
-        return Ok(itensDto);
+        return Ok(new BaseResponse_DTO<IEnumerable<CosmeticoApi_DTO>>
+        {
+            Status = 200,
+            Message = "Loja diária carregada",
+            Data = itensDto
+        });
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<CosmeticoApi_DTO>> GetCosmetico(string id)
+    public async Task<ActionResult<BaseResponse_DTO<CosmeticoApi_DTO>>> GetCosmetico(string id)
     {
         var c = await _context.Cosmeticos.FindAsync(id);
 
         if (c == null)
         {
-            return NotFound(new { Message = "Cosmético não encontrado." });
+            return NotFound(new BaseResponse_DTO 
+            { 
+                Status = 404, 
+                Message = "Cosmético não encontrado." 
+            });
         }
         
         var dto = new CosmeticoApi_DTO
@@ -133,6 +130,11 @@ public class CosmeticosController : ControllerBase
             Images = new FortniteImages { Small = c.UrlImagem, Large = c.UrlImagem, Icon = c.UrlImagem }
         };
 
-        return dto;
+        return Ok(new BaseResponse_DTO<CosmeticoApi_DTO>
+        {
+            Status = 200,
+            Message = "Sucesso",
+            Data = dto
+        });
     }
 }

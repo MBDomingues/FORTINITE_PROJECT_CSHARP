@@ -1,12 +1,7 @@
-/**
- * Classe principal VitrineJS
- * Adaptada para ASP.NET Core MVC
- */
 class VitrineJS {
     constructor(userToken) {
         this.user = userToken || null;
         
-        // ALTERAÇÃO 1: Url Relativa para bater no seu Controller local/docker
         this.API_BASE_URL = '/api'; 
         
         this.itens = []; 
@@ -33,7 +28,6 @@ class VitrineJS {
         this.init();
     }
 
-    // --- MAPA CENTRALIZADO DE TRADUÇÃO DE TIPOS ---
     _getTipoMapa(outputCase = 'lower') {
         const map = {
             'outfit': 'Traje', 'skin': 'Traje', 'traje': 'Traje',
@@ -53,21 +47,33 @@ class VitrineJS {
             'loading': 'Tela de Carregamento'
         };
 
-        if (outputCase === 'api') return map; // Retorna com capitulação correta
+        if (outputCase === 'api') return map;
         return map;
     }
 
     async init() {
-        // Se houver token, busca dados do usuário (Requer UsersController implementado no C#)
+        this.pegaElementos();
+
         if (this.user) {
             await this.verificaUsuario();
+        } else {
+            this.renderizarBotoesLogin(); 
         }
         
-        // Busca Loja
         this.buscaItensDisponiveis();
+    }
+
+    renderizarBotoesLogin() {
+        if (!this.navItens) return;
         
-        // Configura elementos da DOM
-        this.pegaElementos();
+        this.navItens.innerHTML = `
+            <a href="/Home/Login" class="btn-login me-3 text-decoration-none d-flex align-items-center">
+                <i class="bi bi-box-arrow-in-right me-2"></i> Entrar
+            </a>
+            <a href="/Home/Cadastro" class="btn-signup text-decoration-none d-flex align-items-center">
+                <i class="bi bi-person-plus me-2"></i> Criar Conta
+            </a>
+        `;
     }
 
     pegaElementos() {
@@ -90,8 +96,13 @@ class VitrineJS {
         this.shopTypeFilter = document.getElementById('shop-typeFilter');
         this.shopRarityFilter = document.getElementById('shop-rarityFilter');
         this.shopSearchInput = document.getElementById('shop-searchInput');
-        // ... (Outros inputs de data/check mantidos)
         this.shopClearBtn = document.getElementById('shop-clearFilters');
+        // Inputs booleanos
+        this.shopCheckNew = document.getElementById('shop-checkNew');
+        this.shopCheckForSale = document.getElementById('shop-checkForSale');
+        this.shopCheckPromo = document.getElementById('shop-checkPromo');
+        this.shopDateStart = document.getElementById('shop-dateStart');
+        this.shopDateEnd = document.getElementById('shop-dateEnd');
 
         const shopInputs = ['shop-typeFilter', 'shop-rarityFilter', 'shop-searchInput', 'shop-checkNew', 'shop-checkForSale', 'shop-checkPromo'];
         shopInputs.forEach(id => {
@@ -101,13 +112,15 @@ class VitrineJS {
 
         if(this.shopClearBtn) this.shopClearBtn.addEventListener('click', () => this.limparFiltrosLoja());
         
-        // --- FILTROS TODOS OS ITENS ---
         this.allItemsTab = document.getElementById('all-items-tab');
         this.allItemsGrid = document.getElementById('all-items-grid');
         this.allTypeFilter = document.getElementById('all-typeFilter');
         this.allRarityFilter = document.getElementById('all-rarityFilter');
         this.allSearchInput = document.getElementById('all-searchInput');
         this.allClearBtn = document.getElementById('all-clearFilters');
+        this.allCheckPromo = document.getElementById('all-checkPromo');
+        this.allDateStart = document.getElementById('all-dateStart');
+        this.allDateEnd = document.getElementById('all-dateEnd');
 
         const allInputs = ['all-typeFilter', 'all-rarityFilter', 'all-searchInput'];
         allInputs.forEach(id => {
@@ -125,43 +138,47 @@ class VitrineJS {
         if(this.allClearBtn) this.allClearBtn.addEventListener('click', () => this.limparFiltrosTodos());
         if (this.allItemsTab) this.allItemsTab.addEventListener('show.bs.tab', () => { if (!this.todosOsItensCarregados) this.buscaTodosOsItens(); });
 
-        // Tabs de Usuário e Meus Itens
         this.usersTabContainer = document.getElementById('users-tab-container');
         this.myItemsTabContainer = document.getElementById('my-items-tab-container');
     }
 
-    // --- DADOS E AUTH ---
     async verificaUsuario() {
-        // Implementar lógica de auth quando o controller de usuários estiver pronto
-        // Por enquanto, apenas exibe os menus se tiver token
         if (this.user) {
+            const userName = localStorage.getItem('user_name') || 'Usuário';
+            
             if (this.myItemsTabContainer) this.myItemsTabContainer.style.display = 'block';
-            // Atualizar navbar simulada
+            
             this.navItens.innerHTML = `
-                <span class="nav-creditos d-flex align-items-center me-3 text-light">Olá, Usuário</span>
-                <button id="nav-logout" class="btn btn-sm btn-outline-danger">Sair</button>
+                <span class="nav-creditos d-flex align-items-center me-3 text-light">
+                    <i class="bi bi-person-circle me-2"></i> ${userName}
+                </span>
+                <button id="nav-logout" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-box-arrow-right"></i> Sair
+                </button>
             `;
+            
             document.getElementById('nav-logout')?.addEventListener('click', () => {
-                localStorage.removeItem('user_token'); // Ajuste conforme seu auth
-                window.location.reload();
+                localStorageManager.removeToken();
+                window.location.href = '/Home/Login';
             });
         }
     }
 
     // ================================================================
-    // BUSCA NA LOJA (Home)
+    // BUSCA NA LOJA (Home) -> BaseResponse Adaptado
     // ================================================================
     async buscaItensDisponiveis() {
         try {
-            // ALTERAÇÃO 2: Endpoint relativo do seu Controller C#
             const response = await fetch(`${this.API_BASE_URL}/cosmeticos/loja`);
+            const resultado = await response.json(); // Recebe BaseResponse
             
-            if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
+            if (!response.ok || (resultado.status && resultado.status !== 200)) {
+                throw new Error(resultado.message || `Erro HTTP: ${response.status}`);
+            }
             
-            const itensDaApi = await response.json();
+            const itensDaApi = resultado.data;
             
             if (Array.isArray(itensDaApi)) {
-                // ALTERAÇÃO 3: Adaptação para o novo DTO aninhado (images.small, type.displayValue)
                 this.itens = itensDaApi.map(item => {
                     const isAdquirido = this.itensAdquiridosSet.has(item.id);
                     return new ValidadorItem(item, isAdquirido).validaDados();
@@ -176,25 +193,19 @@ class VitrineJS {
         }
     }
 
-    // ================================================================
-    // BUSCA TODOS OS ITENS (Catálogo)
-    // ================================================================
     async buscaTodosOsItens() {
         if (!this.allItemsGrid) return;
 
-        // Construção da URL com Query Params do C#
         const url = new URL(`${window.location.origin}${this.API_BASE_URL}/cosmeticos`);
         
         const busca = this.allSearchInput ? this.allSearchInput.value.trim() : '';
         const tipo = this.allTypeFilter ? this.allTypeFilter.value : '';
         const raridade = this.allRarityFilter ? this.allRarityFilter.value : '';
 
-        // Mapeamento para os params do Controller C#
         if (busca) url.searchParams.append('nome', busca);
         if (tipo) url.searchParams.append('tipo', this._getTipoMapa('api')[tipo.toLowerCase()] || tipo);
         if (raridade) url.searchParams.append('raridade', this.traduzirRaridadeParaAPI(raridade));
         
-        // ALTERAÇÃO 4: Paginação C# (Começa em 1, não 0)
         url.searchParams.append('page', '1'); 
         url.searchParams.append('pageSize', '100'); 
 
@@ -202,12 +213,18 @@ class VitrineJS {
             this.allItemsGrid.innerHTML = this.gerarSpinner();
             
             const response = await fetch(url.toString());
-            if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
+            const resultado = await response.json(); // Recebe BaseResponse
             
-            const resultado = await response.json();
+            // Verifica status
+            if (!response.ok || (resultado.status && resultado.status !== 200)) {
+                throw new Error(resultado.message || `Erro HTTP: ${response.status}`);
+            }
             
-            // ALTERAÇÃO 5: O C# retorna { data: [...] }, não content
-            const listaItensRaw = resultado.data || []; 
+            // Desembrulha:
+            // resultado.data = Objeto de Paginação (Total, Page, Data)
+            // resultado.data.data = Lista real de itens
+            const paginacao = resultado.data || {};
+            const listaItensRaw = paginacao.data || []; 
 
             this.todosOsItens = listaItensRaw.map(item => {
                 const isAdquirido = this.itensAdquiridosSet.has(item.id);
@@ -226,20 +243,39 @@ class VitrineJS {
         return mapa[val] || val;
     }
 
-    // ================================================================
-    // RENDERIZAÇÃO
-    // ================================================================
+
     renderizaItens() {
         if (!this.cosmeticosGrid) return;
         
-        // Filtros locais para a aba "Loja" (já que ela traz tudo de uma vez)
         const busca = this.shopSearchInput?.value.toLowerCase().trim();
         const tipo = this.shopTypeFilter?.value.toLowerCase();
         
+        // Filtros adicionais locais (Data, Promo, etc)
+        const dataInicio = this.shopDateStart && this.shopDateStart.value ? new Date(this.shopDateStart.value) : null;
+        const dataFim = this.shopDateEnd && this.shopDateEnd.value ? new Date(this.shopDateEnd.value) : null;
+        const apenasNovos = this.shopCheckNew ? this.shopCheckNew.checked : false;
+        const apenasVenda = this.shopCheckForSale ? this.shopCheckForSale.checked : false;
+        const apenasPromo = this.shopCheckPromo ? this.shopCheckPromo.checked : false;
+
         let itensFiltrados = this.itens.filter(item => {
             const matchNome = !busca || item.nome.toLowerCase().includes(busca);
-            // Verifica se o tipo (ex: "Traje") contém o filtro (ex: "traje")
             const matchTipo = !tipo || item.tipo.toLowerCase().includes(this._getTipoMapa()[tipo] || tipo);
+            
+            // Lógica de datas e flags
+            if (apenasNovos && !item.isNew) return false;
+            if (apenasVenda && (!item.isForSale)) return false;
+            if (apenasPromo && !item.isForSale) return false;
+
+            if (dataInicio || dataFim) {
+                const dataItem = new Date(item.dataInclusao);
+                if (dataInicio && dataItem < dataInicio) return false;
+                if (dataFim) {
+                    const fimDoDia = new Date(dataFim);
+                    fimDoDia.setHours(23, 59, 59, 999);
+                    if (dataItem > fimDoDia) return false;
+                }
+            }
+
             return matchNome && matchTipo;
         });
 
@@ -250,7 +286,6 @@ class VitrineJS {
         }
 
         const fragmento = document.createDocumentFragment();
-        // Não precisamos agrupar bundles na visualização da loja oficial, mostra tudo
         for (const item of itensFiltrados) {
             fragmento.appendChild(this.criarCard(item));
         }
@@ -288,8 +323,9 @@ class VitrineJS {
 
     preencheCarrousel() {
         if (!this.carrouselItems) return;
-        // Filtra itens caros ou lendários para destaque
-        const destaques = this.itens.filter(i => i.preco > 1500 || i.raridade.toLowerCase() === 'lendário').slice(0, 5);
+        
+        // Lógica de filtro mantida
+        const destaques = this.itens.filter(i => i.preco > 1500 || i.raridade.toLowerCase() === 'lendário' || i.raridade.toLowerCase() === 'série').slice(0, 5);
         
         this.carrouselItems.innerHTML = ''; 
         if (this.carouselIndicators) this.carouselIndicators.innerHTML = ''; 
@@ -303,19 +339,39 @@ class VitrineJS {
         destaques.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = `carousel-item ${index === 0 ? 'active' : ''}`;
-            div.style.height = '500px'; 
             
-            // Background gradiente baseado na raridade
+            // Usa sua classe de gradiente
             const corClass = `bg-rarity-${this.obterClasseRaridade(item.raridade)}`;
             
             div.innerHTML = `
-                <div class="${corClass}" style="position: absolute; width:100%; height:100%; opacity: 0.8;"></div>
-                <div class="carousel-caption">
-                    <img src="${item.urlImagem}" style="height: 300px; object-fit: contain; margin-bottom: 20px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));">
-                    <h3>${item.nome}</h3>
-                    <p>${item.tipo} - ${item.preco} V-Bucks</p>
+                <div class="${corClass}" style="position: absolute; width:100%; height:100%; opacity: 0.6;"></div>
+                
+                <div style="position: absolute; width:100%; height:100%; display: flex; align-items: center; justify-content: center; z-index: 1;">
+                    <img src="${item.urlImagem}" style="height: 80%; object-fit: contain; filter: drop-shadow(0 0 30px rgba(0,0,0,0.6)); transform: scale(1.1);">
+                </div>
+
+                <div class="carousel-caption d-flex flex-column justify-content-end p-5" style="z-index: 2; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);">
+                    <span class="badge bg-warning text-dark mb-2 align-self-start shadow-sm">DESTAQUE</span>
+                    <h1 class="fw-bold display-4 text-uppercase" style="text-shadow: 2px 2px 10px rgba(0,0,0,0.8);">${item.nome}</h1>
+                    <p class="fs-4 text-white-50">${item.tipo} &bull; ${item.raridade}</p>
+                    
+                    <div class="d-flex align-items-center gap-3 mt-3">
+                        <h2 class="m-0 text-warning fw-bold me-4" style="text-shadow: 0 0 10px rgba(255, 193, 7, 0.4);">
+                            ${item.preco} <small style="font-size: 0.5em;">V-Bucks</small>
+                        </h2>
+                        <button class="btn btn-signup btn-lg px-4 shadow-lg btn-comprar-carrousel">
+                            <i class="bi bi-cart-fill me-2"></i> Comprar
+                        </button>
+                    </div>
                 </div>
             `;
+            
+            // Evento no botão do carrossel
+            div.querySelector('.btn-comprar-carrousel')?.addEventListener('click', (e) => {
+                e.stopPropagation(); // Evita bugs
+                this.abrirModalItem(item);
+            });
+
             this.carrouselItems.appendChild(div);
             
             // Indicadores
@@ -338,23 +394,42 @@ class VitrineJS {
     criarCard(item) {
         const col = document.createElement('div');
         col.className = 'col';
-        const raridadeClass = this.obterClasseRaridade(item.raridade);
         
+        // Pega a classe de raridade do seu CSS (ex: bg-rarity-legendary)
+        const raridadeClass = `bg-rarity-${this.obterClasseRaridade(item.raridade)}`;
+        
+        // Badges HTML
+        const newBadge = item.isNew ? `<span class="badge status-badge badge-new">Novo</span>` : '';
+        const forSaleBadge = (item.isForSale && !item.isAdquirido) ? `<span class="badge status-badge badge-for-sale">À Venda</span>` : '';
+        const adquiridoBadge = (this.user && item.isAdquirido) ? `<span class="badge status-badge badge-adquirido">Adquirido</span>` : '';
+        const bundleBadge = item.isBundle ? `<span class="badge status-badge bg-primary">Pacote</span>` : '';
+
         col.innerHTML = `
-            <div class="product-card h-100" style="cursor: pointer;">
-                <div class="product-image bg-rarity-${raridadeClass} d-flex align-items-center justify-content-center" style="height: 250px; border-radius: 10px 10px 0 0;">
-                    <img src="${item.urlImagem}" alt="${item.nome}" style="max-height: 90%; max-width: 90%; object-fit: contain;">
+            <div class="product-card h-100">
+                <div class="product-image ${raridadeClass}">
+                    <img src="${item.urlImagem}" alt="${item.nome}" loading="lazy">
+                    
+                    <div class="product-status-badges" style="position: absolute; top: 10px; left: 10px;">
+                        ${bundleBadge} ${newBadge} ${forSaleBadge} ${adquiridoBadge}
+                    </div>
                 </div>
-                <div class="card-body p-3" style="background: #2a2a3d; border-radius: 0 0 10px 10px;">
-                    <h5 class="text-light text-truncate">${item.nome}</h5>
-                    <p class="text-muted small mb-1">${item.tipo}</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="badge bg-dark border border-secondary">${item.raridade}</span>
-                        <span class="text-warning fw-bold">${item.preco} <img src="/images/vbuck.png" width="15" style="vertical-align: text-top;"></span>
+
+                <div class="card-body d-flex flex-column">
+                    <h5 class="product-name text-truncate" title="${item.nome}">${item.nome}</h5>
+                    <p class="product-type mb-auto">${item.tipo}</p>
+                    
+                    <div class="d-flex justify-content-between align-items-end mt-3">
+                        <span class="badge bg-dark border border-secondary text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">
+                            ${item.raridade}
+                        </span>
+                        <span class="product-price">
+                            ${item.preco} <img src="/images/vbuck.png" width="20" style="vertical-align: sub;" onerror="this.style.display='none'">
+                        </span>
                     </div>
                 </div>
             </div>
         `;
+        
         col.addEventListener('click', () => this.abrirModalItem(item));
         return col;
     }
@@ -362,22 +437,78 @@ class VitrineJS {
     abrirModalItem(item) {
         if(!this.itemModalElement) return;
         
-        // Preenche dados do modal
+        // 1. Textos
         document.getElementById('modal-item-name').textContent = item.nome;
         document.getElementById('modal-item-type').textContent = item.tipo;
         document.getElementById('modal-item-price').textContent = item.preco;
-        document.getElementById('modal-item-description').textContent = item.descricao;
+        document.getElementById('modal-item-description').textContent = item.descricao || "Sem descrição disponível.";
+        
+        // Detalhes extras
         document.getElementById('modal-detail-rarity').textContent = item.raridade;
         document.getElementById('modal-detail-category').textContent = item.tipo;
         document.getElementById('modal-detail-date').textContent = new Date(item.dataInclusao).toLocaleDateString();
         
-        // Imagem e Fundo
+        // 2. Imagem e Fundo (Usando suas classes CSS)
         const imgContainer = document.getElementById('modal-item-image');
-        imgContainer.className = `item-modal-image bg-rarity-${this.obterClasseRaridade(item.raridade)} d-flex justify-content-center align-items-center`;
-        imgContainer.innerHTML = `<img src="${item.urlImagem}" style="max-height: 80%;">`;
+        // Remove classes antigas de raridade para não acumular
+        imgContainer.className = 'item-modal-image'; 
+        // Adiciona a nova classe de raridade
+        imgContainer.classList.add(`bg-rarity-${this.obterClasseRaridade(item.raridade)}`);
+        
+        imgContainer.innerHTML = `
+            <img src="${item.urlImagem}" alt="${item.nome}">
+            <div class="item-modal-badges">
+                ${item.isNew ? '<span class="badge badge-new">Novo</span>' : ''}
+            </div>
+            <div class="item-modal-rarity">
+                <span class="badge bg-dark border border-light">${item.raridade}</span>
+            </div>
+        `;
+
+        // 3. Status de Disponibilidade (Ícone e Texto)
+        const availabilityDiv = document.getElementById('modal-item-availability');
+        const availTitle = document.getElementById('modal-availability-title');
+        const availText = document.getElementById('modal-availability-text');
+        const availIcon = availabilityDiv.querySelector('i');
+
+        // Remove classes de status anteriores
+        availabilityDiv.classList.remove('status-disponivel', 'status-adquirido', 'status-indisponivel');
+
+        if (this.user && item.isAdquirido) {
+            availabilityDiv.classList.add('status-adquirido');
+            availIcon.className = 'bi bi-check-circle-fill';
+            availTitle.textContent = 'Adquirido';
+            availText.textContent = 'Este item já está na sua coleção.';
+            document.getElementById('btn-buy').style.display = 'none';
+            document.getElementById('btn-devolver').style.display = 'flex'; // Mostra botão devolver
+        } 
+        else if (item.isForSale) {
+            availabilityDiv.classList.add('status-disponivel');
+            availIcon.className = 'bi bi-cart-check-fill';
+            availTitle.textContent = 'Disponível';
+            availText.textContent = 'Aproveite enquanto está na loja!';
+            document.getElementById('btn-buy').style.display = 'flex';
+            document.getElementById('btn-devolver').style.display = 'none';
+        } 
+        else {
+            availabilityDiv.classList.add('status-indisponivel');
+            availIcon.className = 'bi bi-lock-fill';
+            availTitle.textContent = 'Indisponível';
+            availText.textContent = 'Este item não pode ser comprado no momento.';
+            document.getElementById('btn-buy').style.display = 'none';
+            document.getElementById('btn-devolver').style.display = 'none';
+        }
 
         const modal = new bootstrap.Modal(this.itemModalElement);
         modal.show();
+    }
+
+    handleCompraClick() {
+        Swal.fire('Funcionalidade em desenvolvimento', 'A compra será implementada em breve!', 'info');
+    }
+
+    handleDevolucaoClick() {
+        Swal.fire('Funcionalidade em desenvolvimento', 'A devolução será implementada em breve!', 'info');
     }
 
     obterClasseRaridade(raridade) {
@@ -391,11 +522,17 @@ class VitrineJS {
         return 'common';
     }
 
-    // --- LIMPEZA ---
     limparFiltrosLoja() {
         if(this.shopSearchInput) this.shopSearchInput.value = '';
         if(this.shopTypeFilter) this.shopTypeFilter.value = '';
         if(this.shopRarityFilter) this.shopRarityFilter.value = '';
+        // Reseta checkboxes
+        if(this.shopCheckNew) this.shopCheckNew.checked = false;
+        if(this.shopCheckForSale) this.shopCheckForSale.checked = false;
+        if(this.shopCheckPromo) this.shopCheckPromo.checked = false;
+        if(this.shopDateStart) this.shopDateStart.value = '';
+        if(this.shopDateEnd) this.shopDateEnd.value = '';
+        
         this.renderizaItens();
     }
 
@@ -407,10 +544,7 @@ class VitrineJS {
     }
 }
 
-/**
- * Classe Helper para Normalizar os Dados da API C#
- * Transforma o DTO aninhado (images.small, type.displayValue) em um objeto plano p/ JS
- */
+
 class ValidadorItem {
     constructor(apiData, isAdquirido) {
         this.raw = apiData;
@@ -418,27 +552,22 @@ class ValidadorItem {
     }
 
     validaDados() {
-        // A API C# retorna DTOs com propriedades minúsculas devido ao JSON camelCase
-        // Ex: id, name, description, type: { displayValue }, images: { small }
-        
         return {
             id: this.raw.id || '',
             nome: this.raw.name || 'Sem Nome',
-            // Acessa objetos aninhados com segurança (?.)
             tipo: this.raw.type?.displayValue || 'Cosmético',
             raridade: this.raw.rarity?.displayValue || 'Comum',
-            // Tenta pegar imagem pequena, se não, icone, se não large
             urlImagem: this.raw.images?.small || this.raw.images?.icon || this.raw.images?.large || '',
             preco: this.raw.price || 0,
             descricao: this.raw.description || '',
             dataInclusao: this.raw.added || new Date().toISOString(),
             
-            // Campos de controle
-            isNew: false, // Pode implementar lógica de data se quiser
+
+            isNew: false, 
             isForSale: true,
             isAdquirido: this.isAdquirido,
             isBundle: false,
-            cores: [] // A API do Fortnite não manda cores hex direto nesse endpoint simplificado
+            cores: []
         };
     }
 }

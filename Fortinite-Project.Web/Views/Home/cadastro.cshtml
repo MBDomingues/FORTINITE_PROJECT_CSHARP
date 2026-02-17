@@ -1,0 +1,68 @@
+@{
+    ViewData["Title"] = "Criar Conta";
+    Layout = "_AuthLayout";
+}
+
+<link rel="stylesheet" href="~/css/cadastro.css">
+
+<div class="signup-container">
+    <div class="signup-card">
+        
+        <div class="signup-header">
+            <h2><i class="bi bi-person-plus"></i> Criar Conta</h2>
+            <p>Junte-se à comunidade Fortnite</p>
+        </div>
+
+        <div id="alert-error" class="alert alert-danger d-none" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span id="error-message">Erro ao criar conta</span>
+        </div>
+
+        <form id="signup-form">
+            <div class="form-floating">
+                <input type="text" class="form-control" id="name" required>
+                <label for="name">Nome de Usuário</label>
+            </div>
+
+            <div class="form-floating">
+                <input type="email" class="form-control" id="email" required>
+                <label for="email">Email</label>
+            </div>
+
+            <div class="form-floating">
+                <input type="password" class="form-control" id="password" required minlength="6">
+                <label for="password">Senha</label>
+            </div>
+
+            <div class="form-floating">
+                <input type="password" class="form-control" id="confirm-password" required>
+                <label for="confirm-password">Confirmar Senha</label>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="terms" required>
+                <label class="form-check-label" for="terms">
+                    Concordo com os <a href="#" target="_blank">Termos de Uso</a>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-signup-submit" id="btn-cadastro">
+                Criar Conta
+            </button>
+        </form>
+
+        <div class="login-link">
+            Já tem uma conta? <a asp-controller="Home" asp-action="Login">Fazer login</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/perfil.js" asp-append-version="true"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const authManager = new AuthManager();
+        });
+    </script>
+}

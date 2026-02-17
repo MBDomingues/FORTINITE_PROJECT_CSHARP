@@ -11,7 +11,12 @@ public class HomeController : Controller
         return View();
     }
 
-    public IActionResult Privacy()
+    public IActionResult Cadastro()
+    {
+        return View();
+    }
+
+    public IActionResult Login()
     {
         return View();
     }
