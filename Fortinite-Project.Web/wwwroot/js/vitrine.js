@@ -1,29 +1,14 @@
 class VitrineJS {
     constructor(userToken) {
         this.user = userToken || null;
-        
         this.API_BASE_URL = '/api'; 
-        
         this.itens = []; 
         this.userData = null;
         this.todosOsItens = []; 
         this.todosOsItensCarregados = false;
-        this.usuarios = [];
-        this.usuariosCarregados = false;
-        this.historico = [];
-        this.historicoCarregado = false;
         this.itensAdquiridosSet = new Set();
         this.carouselIndicators = null;
         this.itemModalElement = null;
-        this.currentItemInModal = null;
-
-        this.coresPadraoRaridade = {
-            'comum': '#b0b0b0', 'common': '#b0b0b0',
-            'incomum': '#60aa3a', 'uncommon': '#60aa3a',
-            'raro': '#4ec1f3', 'rare': '#4ec1f3',
-            'épico': '#bf6ee0', 'epic': '#bf6ee0',
-            'lendário': '#e9a748', 'legendary': '#e9a748'
-        };
 
         this.init();
     }
@@ -82,22 +67,18 @@ class VitrineJS {
         this.navItens = document.getElementById('nav-itens');
         this.carouselIndicators = document.querySelector('#featuredCarousel .carousel-indicators');
         this.carouselControlsContainer = document.getElementById('carousel-external-controls');
-
         this.perfilModal = document.getElementById('userProfileModal');
         this.itemModalElement = document.getElementById('itemModal');
-        
         this.btnBuy = document.getElementById('btn-buy');
-        if (this.btnBuy) this.btnBuy.addEventListener('click', () => this.handleCompraClick());
-        
         this.btnDevolver = document.getElementById('btn-devolver');
+        
+        if (this.btnBuy) this.btnBuy.addEventListener('click', () => this.handleCompraClick());
         if (this.btnDevolver) this.btnDevolver.addEventListener('click', () => this.handleDevolucaoClick());
         
-        // --- FILTROS LOJA ---
         this.shopTypeFilter = document.getElementById('shop-typeFilter');
         this.shopRarityFilter = document.getElementById('shop-rarityFilter');
         this.shopSearchInput = document.getElementById('shop-searchInput');
         this.shopClearBtn = document.getElementById('shop-clearFilters');
-        // Inputs booleanos
         this.shopCheckNew = document.getElementById('shop-checkNew');
         this.shopCheckForSale = document.getElementById('shop-checkForSale');
         this.shopCheckPromo = document.getElementById('shop-checkPromo');
@@ -145,14 +126,13 @@ class VitrineJS {
     async verificaUsuario() {
         if (this.user) {
             const userName = localStorage.getItem('user_name') || 'Usuário';
-            
             if (this.myItemsTabContainer) this.myItemsTabContainer.style.display = 'block';
             
             this.navItens.innerHTML = `
                 <span class="nav-creditos d-flex align-items-center me-3 text-light">
                     <i class="bi bi-person-circle me-2"></i> ${userName}
                 </span>
-                <button id="nav-logout" class="btn btn-sm btn-outline-danger">
+                <button id="nav-logout" class="btn btn-sm btn-logout">
                     <i class="bi bi-box-arrow-right"></i> Sair
                 </button>
             `;
@@ -164,13 +144,10 @@ class VitrineJS {
         }
     }
 
-    // ================================================================
-    // BUSCA NA LOJA (Home) -> BaseResponse Adaptado
-    // ================================================================
     async buscaItensDisponiveis() {
         try {
             const response = await fetch(`${this.API_BASE_URL}/cosmeticos/loja`);
-            const resultado = await response.json(); // Recebe BaseResponse
+            const resultado = await response.json(); 
             
             if (!response.ok || (resultado.status && resultado.status !== 200)) {
                 throw new Error(resultado.message || `Erro HTTP: ${response.status}`);
@@ -197,7 +174,6 @@ class VitrineJS {
         if (!this.allItemsGrid) return;
 
         const url = new URL(`${window.location.origin}${this.API_BASE_URL}/cosmeticos`);
-        
         const busca = this.allSearchInput ? this.allSearchInput.value.trim() : '';
         const tipo = this.allTypeFilter ? this.allTypeFilter.value : '';
         const raridade = this.allRarityFilter ? this.allRarityFilter.value : '';
@@ -213,16 +189,12 @@ class VitrineJS {
             this.allItemsGrid.innerHTML = this.gerarSpinner();
             
             const response = await fetch(url.toString());
-            const resultado = await response.json(); // Recebe BaseResponse
+            const resultado = await response.json();
             
-            // Verifica status
             if (!response.ok || (resultado.status && resultado.status !== 200)) {
                 throw new Error(resultado.message || `Erro HTTP: ${response.status}`);
             }
             
-            // Desembrulha:
-            // resultado.data = Objeto de Paginação (Total, Page, Data)
-            // resultado.data.data = Lista real de itens
             const paginacao = resultado.data || {};
             const listaItensRaw = paginacao.data || []; 
 
@@ -243,14 +215,12 @@ class VitrineJS {
         return mapa[val] || val;
     }
 
-
     renderizaItens() {
         if (!this.cosmeticosGrid) return;
         
         const busca = this.shopSearchInput?.value.toLowerCase().trim();
         const tipo = this.shopTypeFilter?.value.toLowerCase();
         
-        // Filtros adicionais locais (Data, Promo, etc)
         const dataInicio = this.shopDateStart && this.shopDateStart.value ? new Date(this.shopDateStart.value) : null;
         const dataFim = this.shopDateEnd && this.shopDateEnd.value ? new Date(this.shopDateEnd.value) : null;
         const apenasNovos = this.shopCheckNew ? this.shopCheckNew.checked : false;
@@ -261,7 +231,6 @@ class VitrineJS {
             const matchNome = !busca || item.nome.toLowerCase().includes(busca);
             const matchTipo = !tipo || item.tipo.toLowerCase().includes(this._getTipoMapa()[tipo] || tipo);
             
-            // Lógica de datas e flags
             if (apenasNovos && !item.isNew) return false;
             if (apenasVenda && (!item.isForSale)) return false;
             if (apenasPromo && !item.isForSale) return false;
@@ -308,7 +277,6 @@ class VitrineJS {
         this.allItemsGrid.appendChild(fragmento);
     }
 
-    // --- UI HELPERS ---
     gerarSpinner() {
         return `<div class="col-12 text-center py-5"><div class="spinner-border text-light" role="status"></div></div>`;
     }
@@ -324,7 +292,6 @@ class VitrineJS {
     preencheCarrousel() {
         if (!this.carrouselItems) return;
         
-        // Lógica de filtro mantida
         const destaques = this.itens.filter(i => i.preco > 1500 || i.raridade.toLowerCase() === 'lendário' || i.raridade.toLowerCase() === 'série').slice(0, 5);
         
         this.carrouselItems.innerHTML = ''; 
@@ -340,14 +307,13 @@ class VitrineJS {
             const div = document.createElement('div');
             div.className = `carousel-item ${index === 0 ? 'active' : ''}`;
             
-            // Usa sua classe de gradiente
             const corClass = `bg-rarity-${this.obterClasseRaridade(item.raridade)}`;
             
             div.innerHTML = `
                 <div class="${corClass}" style="position: absolute; width:100%; height:100%; opacity: 0.6;"></div>
                 
                 <div style="position: absolute; width:100%; height:100%; display: flex; align-items: center; justify-content: center; z-index: 1;">
-                    <img src="${item.urlImagem}" style="height: 80%; object-fit: contain; filter: drop-shadow(0 0 30px rgba(0,0,0,0.6)); transform: scale(1.1);">
+                    <img src="${item.urlImagem}" style="height: 50%; object-fit: contain; filter: drop-shadow(0 0 30px rgba(0,0,0,0.6)); transform: scale(1.1);">
                 </div>
 
                 <div class="carousel-caption d-flex flex-column justify-content-end p-5" style="z-index: 2; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);">
@@ -366,15 +332,13 @@ class VitrineJS {
                 </div>
             `;
             
-            // Evento no botão do carrossel
             div.querySelector('.btn-comprar-carrousel')?.addEventListener('click', (e) => {
-                e.stopPropagation(); // Evita bugs
+                e.stopPropagation(); 
                 this.abrirModalItem(item);
             });
 
             this.carrouselItems.appendChild(div);
             
-            // Indicadores
             if (this.carouselIndicators) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -390,40 +354,43 @@ class VitrineJS {
         if(this.carouselControlsContainer) this.carouselControlsContainer.style.display = show ? 'flex' : 'none';
     }
 
-    // --- CRIAÇÃO DE CARDS E MODAIS ---
     criarCard(item) {
         const col = document.createElement('div');
-        col.className = 'col';
+        col.className = 'col mb-4'; 
         
-        // Pega a classe de raridade do seu CSS (ex: bg-rarity-legendary)
         const raridadeClass = `bg-rarity-${this.obterClasseRaridade(item.raridade)}`;
         
-        // Badges HTML
-        const newBadge = item.isNew ? `<span class="badge status-badge badge-new">Novo</span>` : '';
-        const forSaleBadge = (item.isForSale && !item.isAdquirido) ? `<span class="badge status-badge badge-for-sale">À Venda</span>` : '';
-        const adquiridoBadge = (this.user && item.isAdquirido) ? `<span class="badge status-badge badge-adquirido">Adquirido</span>` : '';
-        const bundleBadge = item.isBundle ? `<span class="badge status-badge bg-primary">Pacote</span>` : '';
+        // Tag "À VENDA" verde limão do seu print
+        const forSaleBadge = (item.isForSale && !item.isAdquirido) ? `<span style="background-color: #58cc24; color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 4px; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">À VENDA</span>` : '';
+        const adquiridoBadge = (this.user && item.isAdquirido) ? `<span style="background-color: #6c757d; color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 4px; letter-spacing: 0.5px;">ADQUIRIDO</span>` : '';
+        const newBadge = item.isNew ? `<span style="background-color: #00d4ff; color: #000; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 4px; letter-spacing: 0.5px; margin-left: 5px;">NOVO</span>` : '';
+
+        // Ícone V-Bucks perfeitinho
+        const vbucksIcon = `<span style="display:inline-flex; align-items:center; justify-content:center; width: 22px; height: 22px; background: #55cdfc; color: #fff; border-radius: 50%; font-size: 14px; font-weight: 900; border: 2px solid #fff; margin-left: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">V</span>`;
 
         col.innerHTML = `
-            <div class="product-card h-100">
+            <div class="product-card d-flex flex-column h-100">
+                
                 <div class="product-image ${raridadeClass}">
                     <img src="${item.urlImagem}" alt="${item.nome}" loading="lazy">
                     
-                    <div class="product-status-badges" style="position: absolute; top: 10px; left: 10px;">
-                        ${bundleBadge} ${newBadge} ${forSaleBadge} ${adquiridoBadge}
+                    <div style="position: absolute; top: 12px; left: 12px; display: flex;">
+                        ${forSaleBadge} ${adquiridoBadge} ${newBadge}
                     </div>
                 </div>
 
-                <div class="card-body d-flex flex-column">
+                <div class="card-body">
                     <h5 class="product-name text-truncate" title="${item.nome}">${item.nome}</h5>
                     <p class="product-type mb-auto">${item.tipo}</p>
                     
-                    <div class="d-flex justify-content-between align-items-end mt-3">
-                        <span class="badge bg-dark border border-secondary text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">
-                            ${item.raridade}
+                    <div class="d-flex justify-content-between align-items-end mt-4 pt-3" style="border-top: 1px solid rgba(255,255,255,0.05);">
+                        
+                        <span class="${raridadeClass}" style="color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.4); letter-spacing: 0.5px; ">
+                            ${item.raridade.toUpperCase()}
                         </span>
-                        <span class="product-price">
-                            ${item.preco} <img src="/images/vbuck.png" width="20" style="vertical-align: sub;" onerror="this.style.display='none'">
+                        
+                        <span class="product-price d-flex align-items-center">
+                            ${item.preco} ${vbucksIcon}
                         </span>
                     </div>
                 </div>
@@ -437,22 +404,19 @@ class VitrineJS {
     abrirModalItem(item) {
         if(!this.itemModalElement) return;
         
-        // 1. Textos
+        const vbucksIcon = `<span style="display:inline-block; width: 24px; height: 24px; background: #55cdfc; color: #fff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 14px; font-weight: bold; border: 2px solid #fff; margin-left: 8px; box-shadow: 0 0 8px rgba(85,205,252,0.5);">V</span>`;
+
         document.getElementById('modal-item-name').textContent = item.nome;
         document.getElementById('modal-item-type').textContent = item.tipo;
-        document.getElementById('modal-item-price').textContent = item.preco;
+        document.getElementById('modal-item-price').innerHTML = `${item.preco} ${vbucksIcon}`;
         document.getElementById('modal-item-description').textContent = item.descricao || "Sem descrição disponível.";
         
-        // Detalhes extras
         document.getElementById('modal-detail-rarity').textContent = item.raridade;
         document.getElementById('modal-detail-category').textContent = item.tipo;
         document.getElementById('modal-detail-date').textContent = new Date(item.dataInclusao).toLocaleDateString();
         
-        // 2. Imagem e Fundo (Usando suas classes CSS)
         const imgContainer = document.getElementById('modal-item-image');
-        // Remove classes antigas de raridade para não acumular
         imgContainer.className = 'item-modal-image'; 
-        // Adiciona a nova classe de raridade
         imgContainer.classList.add(`bg-rarity-${this.obterClasseRaridade(item.raridade)}`);
         
         imgContainer.innerHTML = `
@@ -465,13 +429,11 @@ class VitrineJS {
             </div>
         `;
 
-        // 3. Status de Disponibilidade (Ícone e Texto)
         const availabilityDiv = document.getElementById('modal-item-availability');
         const availTitle = document.getElementById('modal-availability-title');
         const availText = document.getElementById('modal-availability-text');
         const availIcon = availabilityDiv.querySelector('i');
 
-        // Remove classes de status anteriores
         availabilityDiv.classList.remove('status-disponivel', 'status-adquirido', 'status-indisponivel');
 
         if (this.user && item.isAdquirido) {
@@ -480,7 +442,7 @@ class VitrineJS {
             availTitle.textContent = 'Adquirido';
             availText.textContent = 'Este item já está na sua coleção.';
             document.getElementById('btn-buy').style.display = 'none';
-            document.getElementById('btn-devolver').style.display = 'flex'; // Mostra botão devolver
+            document.getElementById('btn-devolver').style.display = 'flex';
         } 
         else if (item.isForSale) {
             availabilityDiv.classList.add('status-disponivel');
@@ -518,7 +480,7 @@ class VitrineJS {
         if (r.includes('épico') || r.includes('epic')) return 'epic';
         if (r.includes('raro') || r.includes('rare')) return 'rare';
         if (r.includes('incomum') || r.includes('uncommon')) return 'uncommon';
-        if (r.includes('série') || r.includes('marvel') || r.includes('star wars')) return 'serie';
+        if (r.includes('série') || r.includes('marvel') || r.includes('star wars') || r.includes('icon') || r.includes('dc')) return 'serie';
         return 'common';
     }
 
@@ -526,7 +488,6 @@ class VitrineJS {
         if(this.shopSearchInput) this.shopSearchInput.value = '';
         if(this.shopTypeFilter) this.shopTypeFilter.value = '';
         if(this.shopRarityFilter) this.shopRarityFilter.value = '';
-        // Reseta checkboxes
         if(this.shopCheckNew) this.shopCheckNew.checked = false;
         if(this.shopCheckForSale) this.shopCheckForSale.checked = false;
         if(this.shopCheckPromo) this.shopCheckPromo.checked = false;
@@ -544,7 +505,6 @@ class VitrineJS {
     }
 }
 
-
 class ValidadorItem {
     constructor(apiData, isAdquirido) {
         this.raw = apiData;
@@ -555,16 +515,14 @@ class ValidadorItem {
         return {
             id: this.raw.id || '',
             nome: this.raw.name || 'Sem Nome',
+            descricao: this.raw.description || 'Sem descrição.',
             tipo: this.raw.type?.displayValue || 'Cosmético',
             raridade: this.raw.rarity?.displayValue || 'Comum',
-            urlImagem: this.raw.images?.small || this.raw.images?.icon || this.raw.images?.large || '',
+            urlImagem: this.raw.images?.icon || this.raw.images?.small || this.raw.images?.large || '',
             preco: this.raw.price || 0,
-            descricao: this.raw.description || '',
             dataInclusao: this.raw.added || new Date().toISOString(),
-            
-
             isNew: false, 
-            isForSale: true,
+            isForSale: true, 
             isAdquirido: this.isAdquirido,
             isBundle: false,
             cores: []

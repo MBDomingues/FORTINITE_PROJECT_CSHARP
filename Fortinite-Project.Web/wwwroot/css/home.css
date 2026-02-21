@@ -198,121 +198,116 @@ body.modal-open { padding-right: 0 !important; overflow-y: scroll !important; }
 }
 
 /* ========================================
-   5. CARDS DE PRODUTOS
+   5. CARDS DE PRODUTOS (ESTILO FORTNITE REAL)
    ======================================== */
 .product-card {
-    background: var(--card-bg); border-radius: 15px; overflow: hidden;
-    transition: all 0.3s ease; cursor: pointer; border: 2px solid transparent; height: 100%;
+    background: #484b82; /* Cor sólida roxa/azulada do seu print */
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+    height: 100%;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 .product-card:hover {
-    transform: translateY(-10px); border-color: var(--primary-color);
+    transform: translateY(-8px);
+    border-color: var(--primary-color);
     box-shadow: 0 15px 40px rgba(0, 212, 255, 0.3);
 }
 
 .product-image {
-    height: 250px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+    height: 320px; /* IMAGEM GIGANTE PARA DESTAQUE */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
 }
-.product-image img { width: 100%; height: 100%; object-fit: cover; }
 
-.card-body { padding: 1.5rem; background: rgba(0, 0, 0, 0.2); height: 100%; }
-.product-name { letter-spacing: 0.5px; font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary); }
-.product-type { color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 0.3px; }
-.product-price { font-size: 1.5rem; font-weight: 700; color: var(--primary-color); }
-
-/* Badges */
-.product-status-badges { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
-.status-badge {
-    font-size: 0.75rem; padding: 0.3em 0.6em; font-weight: 600; border-radius: 6px;
-    text-transform: uppercase; color: var(--text-primary); letter-spacing: 0.5px;
+/* Sombra na imagem e animação de zoom */
+.product-image img {
+    width: 100%;
+    height: 90%;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); /* Faz o item "saltar" da tela */
+    transition: transform 0.3s ease;
 }
-.badge-new { background-color: #007bff; }
-.badge-for-sale { background-color: #28a745; }
-.badge-adquirido { background-color: #6c757d; }
+.product-card:hover .product-image img {
+    transform: scale(1.1);
+}
+
+.card-body {
+    padding: 1.2rem;
+    background: #484b82; /* Mesmo fundo sólido */
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+.product-name {
+    letter-spacing: 0.5px;
+    font-size: 1.4rem;
+    font-weight: 800; /* Mais grosso, estilo Fortnite */
+    margin-bottom: 0.2rem;
+    color: #fff;
+}
+.product-type {
+    color: #9fa3cc; /* Azul acinzentado claro do texto do seu print */
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+.product-price {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #ffcc00; /* Amarelo ouro Fortnite */
+    font-family: 'Anton', sans-serif; /* Fonte de impacto */
+    letter-spacing: 1px;
+}
 
 /* ========================================
-   6. RARIDADES E CORES (Corrigido)
+   6. RARIDADES E CORES (GRADIENTES LINEARES)
    ======================================== */
-
-/* --- RARIDADES PADRÃO (Adicionado seletores em Inglês para bater com o JS) --- */
 
 /* Comum (Cinza) */
 .bg-rarity-comum, .bg-rarity-common, .rarity-common { 
-    background: radial-gradient(circle, #b0b0b0 0%, #6e6e6e 100%); 
+    background: linear-gradient(180deg, #b0b0b0 0%, #5a5a5a 100%); 
 }
 
 /* Incomum (Verde) */
 .bg-rarity-incomum, .bg-rarity-uncommon, .rarity-uncommon { 
-    background: radial-gradient(circle, #60aa3a 0%, #3d6c24 100%); 
+    background: linear-gradient(180deg, #60aa3a 0%, #2b5716 100%); 
 }
 
-/* Raro (Azul) */
+/* Raro (Azul) - Igualzinho à imagem "Lâminas Lunares" */
 .bg-rarity-raro, .bg-rarity-rare, .rarity-rare { 
-    background: radial-gradient(circle, #4ec1f3 0%, #2b6d8a 100%); 
+    background: linear-gradient(180deg, #4ec1f3 0%, #205c7d 100%); 
 }
 
 /* Épico (Roxo) */
 .bg-rarity-epico, .bg-rarity-epic, .rarity-epic { 
-    background: radial-gradient(circle, #bf6ee0 0%, #733e8a 100%); 
+    background: linear-gradient(180deg, #bf6ee0 0%, #5a2770 100%); 
 }
 
-/* Lendário (Laranja/Dourado) - AQUI ESTAVA O ERRO */
+/* Lendário (Laranja/Dourado) */
 .bg-rarity-lendario, .bg-rarity-legendary, .rarity-legendary { 
-    background: radial-gradient(circle, #e9a748 0%, #b86f16 100%); 
+    background: linear-gradient(180deg, #e9a748 0%, #995511 100%); 
 }
 
-/* --- SÉRIES ESPECIAIS (Novas Cores) --- */
-
-/* Marvel e Genérico de Série (Vermelho) */
+/* Séries Especiais (Marvel/Série - Vermelho igual "Escudo de Ósmio") */
 .bg-rarity-marvel, .bg-rarity-serie, .rarity-serie { 
-    background: radial-gradient(circle, #fa4444 0%, #8a1c1c 100%); 
+    background: linear-gradient(180deg, #e43636 0%, #7a1010 100%); 
 }
 
-/* Série Ícones (Ciano/Turquesa) */
-.bg-rarity-icon, .rarity-icon { 
-    background: radial-gradient(circle, #33e8e8 0%, #007f85 100%); 
-}
-
-/* Série DC (Azul Escuro) */
-.bg-rarity-dc, .rarity-dc { 
-    background: radial-gradient(circle, #56668c 0%, #202945 100%); 
-}
-
-/* Série das Sombras (Preto/Cinza) */
-.bg-rarity-shadow, .rarity-shadow { 
-    background: radial-gradient(circle, #575757 0%, #1a1a1a 100%); 
-}
-
-/* Série Congelada (Azul Gelo) */
-.bg-rarity-frozen, .rarity-frozen { 
-    background: radial-gradient(circle, #a5e6f0 0%, #4885a3 100%); 
-}
-
-/* Série Lava (Laranja Fogo) */
-.bg-rarity-lava, .rarity-lava { 
-    background: radial-gradient(circle, #ea9d45 0%, #7a1c00 100%); 
-}
-
-/* Série Obscura (Roxo Escuro) */
-.bg-rarity-dark, .rarity-dark { 
-    background: radial-gradient(circle, #d141e0 0%, #460352 100%); 
-}
-
-/* Série Star Wars (Azul Noite) */
-.bg-rarity-starwars, .rarity-starwars { 
-    background: radial-gradient(circle, #24294a 0%, #080a14 100%); 
-    border-color: #ffe81f !important; /* Borda amarela opcional */
-}
-
-/* Série Lendas dos Jogos (Roxo Azulado) */
-.bg-rarity-gaming, .rarity-gaming { 
-    background: radial-gradient(circle, #5848a8 0%, #261e4f 100%); 
-}
-
-/* Série Glup (Verde Água) */
-.bg-rarity-slurp, .rarity-slurp { 
-    background: radial-gradient(circle, #00f2d5 0%, #02695b 100%); 
-}
+/* Demais séries (Ajustados para Linear) */
+.bg-rarity-icon, .rarity-icon { background: linear-gradient(180deg, #33e8e8 0%, #006066 100%); }
+.bg-rarity-dc, .rarity-dc { background: linear-gradient(180deg, #56668c 0%, #171d33 100%); }
+.bg-rarity-shadow, .rarity-shadow { background: linear-gradient(180deg, #575757 0%, #111 100%); }
+.bg-rarity-frozen, .rarity-frozen { background: linear-gradient(180deg, #a5e6f0 0%, #356780 100%); }
+.bg-rarity-lava, .rarity-lava { background: linear-gradient(180deg, #ea9d45 0%, #5e1500 100%); }
+.bg-rarity-dark, .rarity-dark { background: linear-gradient(180deg, #d141e0 0%, #360240 100%); }
+.bg-rarity-starwars, .rarity-starwars { background: linear-gradient(180deg, #24294a 0%, #04050a 100%); border-color: #ffe81f !important; }
+.bg-rarity-gaming, .rarity-gaming { background: linear-gradient(180deg, #5848a8 0%, #1c153d 100%); }
+.bg-rarity-slurp, .rarity-slurp { background: linear-gradient(180deg, #00f2d5 0%, #014f44 100%); }
 /* ========================================
    7. FORMULÁRIOS E FILTROS
    ======================================== */

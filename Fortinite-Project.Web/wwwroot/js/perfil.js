@@ -1,13 +1,8 @@
-/**
- * AuthManager
- * Gerencia Login e Cadastro conversando com a API C# (English DTOs)
- */
 class AuthManager {
     constructor() {
         this.API_LOGIN = '/api/auth/login';
-        this.API_REGISTER = '/api/auth/cadastro'; // Endpoint do AuthController
+        this.API_REGISTER = '/api/auth/cadastro';
         
-        // Elementos do DOM
         this.loginButton = document.getElementById('btn-login');
         this.registerButton = document.getElementById('btn-cadastro');
         this.errorElement = document.getElementById('error-message');
@@ -17,7 +12,6 @@ class AuthManager {
     }
 
     initEvents() {
-        // Evento de Login
         if (this.loginButton) {
             this.loginButton.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -25,7 +19,6 @@ class AuthManager {
             });
         }
 
-        // Evento de Cadastro
         if (this.registerButton) {
             this.registerButton.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -67,9 +60,9 @@ class AuthManager {
 
         try {
             const payload = {
-                Nome: name,      // Antes era 'name'
-                Email: email,    // Antes era 'email'
-                Senha: password  // Antes era 'password'
+                Nome: name,
+                Email: email,
+                Senha: password
             };
 
             const response = await fetch(this.API_REGISTER, {
@@ -81,15 +74,16 @@ class AuthManager {
             const result = await response.json();
 
             if (!response.ok) {
-                // Se o backend retornar erro (ex: 400), a mensagem estará em result.message
-                throw new Error(result.message || 'Erro ao realizar cadastro.');
+                if (result.errors) {
+                    const primeiroErro = Object.keys(result.errors)[0];
+                    throw new Error(result.errors[primeiroErro][0]);
+                }
+                throw new Error(result.message || result.title || 'Falha na comunicação com o servidor.');
             }
 
-            // Sucesso (Status 201)
-            // O C# retorna BaseResponse<T>, então os dados estão em result.data
             if (result.data && result.data.token) {
                 localStorageManager.saveToken(result.data.token);
-                
+                localStorage.setItem('user_name', result.data.nome);
                 await Swal.fire({
                     icon: 'success',
                     title: 'Bem-vindo!',
@@ -98,7 +92,7 @@ class AuthManager {
                     showConfirmButton: false
                 });
 
-                window.location.href = '/Home/Index'; // Redireciona para Home
+                window.location.href = '/Home/Index';
             }
 
         } catch (error) {
@@ -125,10 +119,9 @@ class AuthManager {
         this.setLoading(true, this.loginButton);
 
         try {
-            // Payload em Inglês para bater com LoginDto do C#
             const payload = {
-                email: email,
-                password: password
+                Email: email,
+                Senha: password
             };
 
             const response = await fetch(this.API_LOGIN, {
@@ -140,14 +133,17 @@ class AuthManager {
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.message || 'Falha no login.');
+                if (result.errors) {
+                    const primeiroErro = Object.keys(result.errors)[0];
+                    throw new Error(result.errors[primeiroErro][0]);
+                }
+                throw new Error(result.message || result.title || 'Falha na comunicação com o servidor.');
             }
 
-            // Sucesso (Status 200)
             if (result.data && result.data.token) {
                 localStorageManager.saveToken(result.data.token);
-                // Salva infos extras se quiser
-                localStorage.setItem('user_name', result.data.name);
+                
+                localStorage.setItem('user_name', result.data.nome);
                 
                 window.location.href = '/Home/Index';
             } else {
@@ -162,7 +158,6 @@ class AuthManager {
         }
     }
 
-    // --- UTILITÁRIOS ---
     setLoading(isLoading, button, originalText) {
         if (!button) return;
         if (isLoading) {
@@ -180,7 +175,6 @@ class AuthManager {
             this.errorElement.textContent = msg;
             this.alertErrorBox.classList.remove('d-none');
         } else {
-            // Fallback se não tiver o elemento HTML na página
             Swal.fire({ icon: 'error', title: 'Erro', text: msg });
         }
     }
@@ -192,7 +186,6 @@ class AuthManager {
     }
 }
 
-// Gerenciador de LocalStorage (igual ao que você já tinha, apenas formatado)
 class localStorageManager {
     static saveToken(token) {
         localStorage.setItem('jwt_token', token);
