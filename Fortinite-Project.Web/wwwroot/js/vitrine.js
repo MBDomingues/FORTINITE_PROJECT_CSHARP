@@ -62,6 +62,7 @@ class VitrineJS {
     }
 
     pegaElementos() {
+        // 1. Elementos Básicos da Vitrine
         this.cosmeticosGrid = document.getElementById('shop-grid'); 
         this.carrouselItems = document.getElementById('carouselItems');
         this.navItens = document.getElementById('nav-itens');
@@ -69,12 +70,15 @@ class VitrineJS {
         this.carouselControlsContainer = document.getElementById('carousel-external-controls');
         this.perfilModal = document.getElementById('userProfileModal');
         this.itemModalElement = document.getElementById('itemModal');
+        
+        // 2. Botões de Ação do Modal
         this.btnBuy = document.getElementById('btn-buy');
         this.btnDevolver = document.getElementById('btn-devolver');
         
         if (this.btnBuy) this.btnBuy.addEventListener('click', () => this.handleCompraClick());
         if (this.btnDevolver) this.btnDevolver.addEventListener('click', () => this.handleDevolucaoClick());
         
+        // 3. Filtros da Loja (Prefix: shop)
         this.shopTypeFilter = document.getElementById('shop-typeFilter');
         this.shopRarityFilter = document.getElementById('shop-rarityFilter');
         this.shopSearchInput = document.getElementById('shop-searchInput');
@@ -85,31 +89,33 @@ class VitrineJS {
         this.shopDateStart = document.getElementById('shop-dateStart');
         this.shopDateEnd = document.getElementById('shop-dateEnd');
 
-        const shopInputs = ['shop-typeFilter', 'shop-rarityFilter', 'shop-searchInput', 'shop-checkNew', 'shop-checkForSale', 'shop-checkPromo'];
-        shopInputs.forEach(id => {
+        const shopInputIds = ['shop-typeFilter', 'shop-rarityFilter', 'shop-searchInput', 'shop-checkNew', 'shop-checkForSale', 'shop-checkPromo'];
+        shopInputIds.forEach(id => {
             const el = document.getElementById(id);
             if(el) el.addEventListener(el.type === 'text' ? 'input' : 'change', () => this.renderizaItens());
         });
 
         if(this.shopClearBtn) this.shopClearBtn.addEventListener('click', () => this.limparFiltrosLoja());
         
-        this.allItemsTab = document.getElementById('all-items-tab');
+        // 4. Catálogo Completo (Prefix: all)
+        // CORREÇÃO: Pegamos o botão da tab pelo data-attribute para garantir que o evento do Bootstrap dispare
+        this.allItemsTab = document.querySelector('button[data-bs-target="#all-items-content"]');
         this.allItemsGrid = document.getElementById('all-items-grid');
         this.allTypeFilter = document.getElementById('all-typeFilter');
         this.allRarityFilter = document.getElementById('all-rarityFilter');
         this.allSearchInput = document.getElementById('all-searchInput');
         this.allClearBtn = document.getElementById('all-clearFilters');
-        this.allCheckPromo = document.getElementById('all-checkPromo');
-        this.allDateStart = document.getElementById('all-dateStart');
-        this.allDateEnd = document.getElementById('all-dateEnd');
 
-        const allInputs = ['all-typeFilter', 'all-rarityFilter', 'all-searchInput'];
-        allInputs.forEach(id => {
+        const allInputIds = ['all-typeFilter', 'all-rarityFilter', 'all-searchInput'];
+        allInputIds.forEach(id => {
             const el = document.getElementById(id);
             if(el) {
                 if (el.type === 'text') {
                     let timeout;
-                    el.addEventListener('input', () => { clearTimeout(timeout); timeout = setTimeout(() => this.buscaTodosOsItens(), 500); });
+                    el.addEventListener('input', () => { 
+                        clearTimeout(timeout); 
+                        timeout = setTimeout(() => this.buscaTodosOsItens(), 500); 
+                    });
                 } else {
                     el.addEventListener('change', () => this.buscaTodosOsItens());
                 }
@@ -117,8 +123,15 @@ class VitrineJS {
         });
 
         if(this.allClearBtn) this.allClearBtn.addEventListener('click', () => this.limparFiltrosTodos());
-        if (this.allItemsTab) this.allItemsTab.addEventListener('show.bs.tab', () => { if (!this.todosOsItensCarregados) this.buscaTodosOsItens(); });
 
+        // CORREÇÃO: Mudamos para 'shown.bs.tab' para garantir que a aba já esteja renderizada
+        if (this.allItemsTab) {
+            this.allItemsTab.addEventListener('shown.bs.tab', () => { 
+                if (!this.todosOsItensCarregados) this.buscaTodosOsItens(); 
+            });
+        }
+
+        // 5. Contêineres de Abas Restritas
         this.usersTabContainer = document.getElementById('users-tab-container');
         this.myItemsTabContainer = document.getElementById('my-items-tab-container');
     }
@@ -127,7 +140,7 @@ class VitrineJS {
         if (this.user) {
             const userName = localStorage.getItem('user_name') || 'Usuário';
             if (this.myItemsTabContainer) this.myItemsTabContainer.style.display = 'block';
-            
+            if (this.usersTabContainer) this.usersTabContainer.style.display = 'block';
             this.navItens.innerHTML = `
                 <span class="nav-creditos d-flex align-items-center me-3 text-light">
                     <i class="bi bi-person-circle me-2"></i> ${userName}
@@ -173,39 +186,46 @@ class VitrineJS {
     async buscaTodosOsItens() {
         if (!this.allItemsGrid) return;
 
-        const url = new URL(`${window.location.origin}${this.API_BASE_URL}/cosmeticos`);
-        const busca = this.allSearchInput ? this.allSearchInput.value.trim() : '';
-        const tipo = this.allTypeFilter ? this.allTypeFilter.value : '';
-        const raridade = this.allRarityFilter ? this.allRarityFilter.value : '';
-
-        if (busca) url.searchParams.append('nome', busca);
-        if (tipo) url.searchParams.append('tipo', this._getTipoMapa('api')[tipo.toLowerCase()] || tipo);
-        if (raridade) url.searchParams.append('raridade', this.traduzirRaridadeParaAPI(raridade));
-        
-        url.searchParams.append('page', '1'); 
-        url.searchParams.append('pageSize', '100'); 
+        this.allItemsGrid.innerHTML = this.gerarSpinner();
 
         try {
-            this.allItemsGrid.innerHTML = this.gerarSpinner();
+            const url = new URL(`${window.location.origin}${this.API_BASE_URL}/cosmeticos`);
             
+            // Forçamos o valor para string vazia caso o elemento não exista ou esteja nulo
+            const busca = this.allSearchInput?.value?.trim() || '';
+            const tipo = this.allTypeFilter?.value || '';
+            const raridade = this.allRarityFilter?.value || '';
+
+            if (busca) url.searchParams.append('nome', busca);
+            
+            // Só adiciona ao link se houver um valor selecionado real
+            if (tipo && tipo !== "") {
+                // Não use o _getTipoMapa aqui, pois o valor do select já está correto
+                url.searchParams.append('tipo', tipo); 
+            }
+            
+            if (raridade && raridade !== "") {
+                url.searchParams.append('raridade', this.traduzirRaridadeParaAPI(raridade));
+            }
+            
+            url.searchParams.append('page', '1'); 
+            url.searchParams.append('pageSize', '100'); 
+
             const response = await fetch(url.toString());
             const resultado = await response.json();
             
-            if (!response.ok || (resultado.status && resultado.status !== 200)) {
-                throw new Error(resultado.message || `Erro HTTP: ${response.status}`);
-            }
-            
-            const paginacao = resultado.data || {};
-            const listaItensRaw = paginacao.data || []; 
+            // Sua API C# retorna os itens dentro de data.data
+            const listaItensRaw = resultado.data?.data || resultado.data || []; 
 
-            this.todosOsItens = listaItensRaw.map(item => {
-                const isAdquirido = this.itensAdquiridosSet.has(item.id);
-                return new ValidadorItem(item, isAdquirido).validaDados();
-            });
+            this.todosOsItens = listaItensRaw.map(item => 
+                new ValidadorItem(item, this.itensAdquiridosSet.has(item.id)).validaDados()
+            );
 
+            this.todosOsItensCarregados = true;
             this.renderizarTodosOsItens(); 
+
         } catch (error) {
-            console.error('Erro catalogo:', error);
+            console.error('Erro no catálogo:', error);
             this.mostrarErro('Erro ao carregar catálogo.', this.allItemsGrid);
         }
     }
@@ -219,7 +239,8 @@ class VitrineJS {
         if (!this.cosmeticosGrid) return;
         
         const busca = this.shopSearchInput?.value.toLowerCase().trim();
-        const tipo = this.shopTypeFilter?.value.toLowerCase();
+        // Removemos o toLowerCase() aqui para bater com o valor exato do Banco/HTML
+        const tipoSelecionado = this.shopTypeFilter?.value; 
         
         const dataInicio = this.shopDateStart && this.shopDateStart.value ? new Date(this.shopDateStart.value) : null;
         const dataFim = this.shopDateEnd && this.shopDateEnd.value ? new Date(this.shopDateEnd.value) : null;
@@ -229,7 +250,10 @@ class VitrineJS {
 
         let itensFiltrados = this.itens.filter(item => {
             const matchNome = !busca || item.nome.toLowerCase().includes(busca);
-            const matchTipo = !tipo || item.tipo.toLowerCase().includes(this._getTipoMapa()[tipo] || tipo);
+            
+            // CORREÇÃO: Comparação direta. Se não houver filtro, passa tudo. 
+            // Se houver, compara o item.tipo vindo do C# com o value do HTML.
+            const matchTipo = !tipoSelecionado || item.tipo === tipoSelecionado;
             
             if (apenasNovos && !item.isNew) return false;
             if (apenasVenda && (!item.isForSale)) return false;
@@ -250,8 +274,8 @@ class VitrineJS {
 
         this.cosmeticosGrid.innerHTML = '';
         if (itensFiltrados.length === 0) {
-           this.cosmeticosGrid.innerHTML = this.gerarHTMLVazio('Nenhum item na loja com estes filtros.');
-           return;
+        this.cosmeticosGrid.innerHTML = this.gerarHTMLVazio('Nenhum item na loja com estes filtros.');
+        return;
         }
 
         const fragmento = document.createDocumentFragment();
@@ -263,6 +287,8 @@ class VitrineJS {
 
     renderizarTodosOsItens() {
         if (!this.allItemsGrid) return;
+        
+        // Limpa o spinner ou resultados anteriores
         this.allItemsGrid.innerHTML = '';
         
         if (this.todosOsItens.length === 0) {
@@ -272,13 +298,19 @@ class VitrineJS {
 
         const fragmento = document.createDocumentFragment();
         for (const item of this.todosOsItens) {
+            // O criarCard já recebe o item validado pelo ValidadorItem
             fragmento.appendChild(this.criarCard(item));
         }
         this.allItemsGrid.appendChild(fragmento);
     }
 
     gerarSpinner() {
-        return `<div class="col-12 text-center py-5"><div class="spinner-border text-light" role="status"></div></div>`;
+        return `
+        <div class="col-12 d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>`;
     }
 
     gerarHTMLVazio(msg) {
@@ -360,38 +392,40 @@ class VitrineJS {
         
         const raridadeClass = `bg-rarity-${this.obterClasseRaridade(item.raridade)}`;
         
-        // Tag "À VENDA" verde limão do seu print
-        const forSaleBadge = (item.isForSale && !item.isAdquirido) ? `<span style="background-color: #58cc24; color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 4px; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">À VENDA</span>` : '';
-        const adquiridoBadge = (this.user && item.isAdquirido) ? `<span style="background-color: #6c757d; color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 4px; letter-spacing: 0.5px;">ADQUIRIDO</span>` : '';
-        const newBadge = item.isNew ? `<span style="background-color: #00d4ff; color: #000; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 4px; letter-spacing: 0.5px; margin-left: 5px;">NOVO</span>` : '';
+        // 1. Lógica Condicional para as Badges
+        // Só exibe a badge "À VENDA" se o item estiver marcado como disponível para venda
+        const forSaleBadge = (item.isForSale && !item.isAdquirido) 
+            ? `<span style="background-color: #58cc24; color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 4px; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">À VENDA</span>` 
+            : '';
+            
+        const adquiridoBadge = (this.user && item.isAdquirido) 
+            ? `<span style="background-color: #6c757d; color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 4px; letter-spacing: 0.5px;">ADQUIRIDO</span>` 
+            : '';
 
-        // Ícone V-Bucks perfeitinho
+        // 2. Lógica Condicional para o Preço
+        // Se não estiver à venda e não for adquirido, ocultamos o valor e o ícone de V-Bucks
         const vbucksIcon = `<span style="display:inline-flex; align-items:center; justify-content:center; width: 22px; height: 22px; background: #55cdfc; color: #fff; border-radius: 50%; font-size: 14px; font-weight: 900; border: 2px solid #fff; margin-left: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">V</span>`;
+        
+        const precoHTML = (item.isForSale || item.isAdquirido) 
+            ? `<span class="product-price d-flex align-items-center">${item.preco} ${vbucksIcon}</span>`
+            : `<span class="text-muted opacity-50" style="font-size: 0.9rem; font-weight: 700;">INDISPONÍVEL</span>`;
 
         col.innerHTML = `
             <div class="product-card d-flex flex-column h-100">
-                
                 <div class="product-image ${raridadeClass}">
                     <img src="${item.urlImagem}" alt="${item.nome}" loading="lazy">
-                    
                     <div style="position: absolute; top: 12px; left: 12px; display: flex;">
-                        ${forSaleBadge} ${adquiridoBadge} ${newBadge}
+                        ${forSaleBadge} ${adquiridoBadge}
                     </div>
                 </div>
-
                 <div class="card-body">
                     <h5 class="product-name text-truncate" title="${item.nome}">${item.nome}</h5>
                     <p class="product-type mb-auto">${item.tipo}</p>
-                    
                     <div class="d-flex justify-content-between align-items-end mt-4 pt-3" style="border-top: 1px solid rgba(255,255,255,0.05);">
-                        
-                        <span class="${raridadeClass}" style="color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.4); letter-spacing: 0.5px; ">
+                        <span class="${raridadeClass}" style="color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.4); letter-spacing: 0.5px;">
                             ${item.raridade.toUpperCase()}
                         </span>
-                        
-                        <span class="product-price d-flex align-items-center">
-                            ${item.preco} ${vbucksIcon}
-                        </span>
+                        ${precoHTML}
                     </div>
                 </div>
             </div>
@@ -512,20 +546,31 @@ class ValidadorItem {
     }
 
     validaDados() {
+        // 1. Tratamento para nomes nulos ou strings "null" (visto no seu print)
+        const nomeValido = (this.raw.name && this.raw.name !== "null") ? this.raw.name : 'Sem Nome';
+
+        // 2. Lógica de Venda: O item só está à venda se a API enviar um preço maior que zero 
+        // ou se a propriedade shopHistory/isForSale existir e for verdadeira
+        const precoItem = this.raw.price || 0;
+        const estaNaLoja = (this.raw.isForSale === true) || (precoItem > 0);
+
         return {
             id: this.raw.id || '',
-            nome: this.raw.name || 'Sem Nome',
+            nome: nomeValido,
             descricao: this.raw.description || 'Sem descrição.',
             tipo: this.raw.type?.displayValue || 'Cosmético',
             raridade: this.raw.rarity?.displayValue || 'Comum',
             urlImagem: this.raw.images?.icon || this.raw.images?.small || this.raw.images?.large || '',
-            preco: this.raw.price || 0,
+            preco: precoItem,
             dataInclusao: this.raw.added || new Date().toISOString(),
-            isNew: false, 
-            isForSale: true, 
+            isNew: this.raw.isNew || false, 
+            
+            // CORREÇÃO: Agora o valor depende da realidade do item, não é mais fixo
+            isForSale: estaNaLoja, 
+            
             isAdquirido: this.isAdquirido,
-            isBundle: false,
-            cores: []
+            isBundle: this.raw.isBundle || false,
+            cores: this.raw.colors || []
         };
     }
 }
