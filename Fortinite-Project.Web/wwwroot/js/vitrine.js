@@ -546,11 +546,8 @@ class ValidadorItem {
     }
 
     validaDados() {
-        // 1. Tratamento para nomes nulos ou strings "null" (visto no seu print)
         const nomeValido = (this.raw.name && this.raw.name !== "null") ? this.raw.name : 'Sem Nome';
 
-        // 2. Lógica de Venda: O item só está à venda se a API enviar um preço maior que zero 
-        // ou se a propriedade shopHistory/isForSale existir e for verdadeira
         const precoItem = this.raw.price || 0;
         const estaNaLoja = (this.raw.isForSale === true) || (precoItem > 0);
 
@@ -565,7 +562,6 @@ class ValidadorItem {
             dataInclusao: this.raw.added || new Date().toISOString(),
             isNew: this.raw.isNew || false, 
             
-            // CORREÇÃO: Agora o valor depende da realidade do item, não é mais fixo
             isForSale: estaNaLoja, 
             
             isAdquirido: this.isAdquirido,
